@@ -5,25 +5,25 @@
 
     <v-stage :config="configKonva">
 
+<!--      <v-layer>-->
+<!--        <v-circle v-for="(circle, index) in realPoints" :key="index" :config="circle">-->
+<!--        </v-circle>-->
+<!--      </v-layer>-->
+
+
+<!--      <v-layer>-->
+<!--        <v-circle v-for="(realPoint,pointIndex) in realPoints" :key="pointIndex" :config="realPoint">-->
+<!--        </v-circle>-->
+<!--      </v-layer>-->
       <v-layer>
-        <v-circle v-for="(circle, index) in realPoints" :key="index" :config="circle">
+        <v-circle v-for="(receiver,pointIndex) in circlesToShow" :key="pointIndex" :config="receiver">
         </v-circle>
       </v-layer>
 
-
-      <v-layer>
-        <v-circle v-for="(realPoint,pointIndex) in realPoints" :key="pointIndex" :config="realPoint">
-        </v-circle>
-      </v-layer>
-      <v-layer>
-        <v-circle v-for="(receiver,pointIndex) in receivers" :key="pointIndex" :config="receiver">
-        </v-circle>
-      </v-layer>
-
-      <v-layer>
-        <v-circle v-for="(receiver,pointIndex) in foundPoints" :key="pointIndex" :config="receiver">
-        </v-circle>
-      </v-layer>
+<!--      <v-layer>-->
+<!--        <v-circle v-for="(receiver,pointIndex) in foundPoints" :key="pointIndex" :config="receiver">-->
+<!--        </v-circle>-->
+<!--      </v-layer>-->
 
       <v-layer>
         <v-circle v-for="(receiver,pointIndex) in rads" :key="pointIndex" :config="receiver">
@@ -61,6 +61,10 @@ export default {
 name: "Dist",
   data: function () {
     return {
+      leftestPoint: 0,
+      rightTestPoint: window.innerWidth,
+      highestPoint: 0,
+      lowestPoint: window.innerHeight,
       averageError: 0,
       startX: 400 + Math.random() * 400,
       startY: 400 + Math.random() * 400,
@@ -83,6 +87,8 @@ name: "Dist",
        */
       receiverAbsoluteError: 0,
       circlesToShow: {},
+      circlesToShowAfterDrawStarts: {},
+      linesToShowAfterDrawStarts: {},
       receivers: {
         1: {
           x: 111+ Math.random() * 200,
@@ -138,10 +144,84 @@ name: "Dist",
 
   created () {
     this.pathLinePoints = [this.startX, this.startY];
+
+    for (let id = 1; id < 4; id++) {
+      this.addCircleToDraw(this.receivers[id].x, this.receivers[id].y, this.receivers[id].radius, 'receiver_' + id,
+          {fill: this.receivers[id].fill}
+      );
+    }
+
+    this.countParamsAndDraw();
+
     this.countT1();
   },
 
   methods: {
+
+    countParamsAndDraw() {
+      let fieldWidth = this.rightTestPoint - this.leftestPoint + 1;
+      let fieldHeight = this.lowestPoint - this.highestPoint + 1;
+
+      console.log('window.innerWidth',window.innerWidth); //todo r
+      console.log('window.innerHeight',window.innerHeight); //todo r
+
+      let screenToFieldWidth = window.innerWidth / fieldWidth;
+      let screenToFieldHeight = window.innerHeight / fieldHeight;
+
+      let scale = Math.min(screenToFieldWidth, screenToFieldHeight);
+
+
+
+      let averageX = (this.rightTestPoint - this.leftestPoint) / 2;
+      let halfWidth = window.innerWidth / 2;
+      let horShift = halfWidth - averageX;
+
+      let averageY = (this.lowestPoint - this.highestPoint) / 2;
+      let halfHeight = window.innerHeight / 2;
+
+      let verShift = halfHeight - averageY;
+
+      for (let circleIndex in this.circlesToShowAfterDrawStarts) {
+        let circleInfo = this.circlesToShowAfterDrawStarts[circleIndex];
+        this.circlesToShow[circleIndex] = {
+            x: (circleInfo.x + horShift) * scale,
+            y: (circleInfo.y + verShift) * scale,
+            fill: circleInfo.fill
+        };
+      }
+
+      console.log('this.circlesToShow',this.circlesToShow); //todo r
+
+
+
+      console.log('scale',scale); //todo r
+
+    },
+    addPoint(x, y) {
+      if (x > this.rightTestPoint) {
+        this.rightTestPoint = x;
+      }
+      if (x < this.leftestPoint) {
+        this.leftestPoint = x;
+      }
+      if (y > this.lowestPoint) {
+        this.lowestPoint = y;
+      }
+      if (y < this.highestPoint) {
+        this.highestPoint = y;
+      }
+    },
+    addCircleToDraw(x, y, r, key, otherProps) {
+      this.addPoint(x, y);
+      this.circlesToShowAfterDrawStarts[key] = {x, y, r, ...otherProps};
+      console.log('this.circlesToShowAfterDrawStarts',this.circlesToShowAfterDrawStarts); //todo r
+    },
+    addLinePartToDraw(x, y, key, otherProps) {
+      this.addPoint(x, y);
+      this.linesToShowAfterDrawStarts[key] = {x, y, ...otherProps};
+      console.log('this.linesToShowAfterDrawStarts',this.linesToShowAfterDrawStarts); //todo r
+    },
+
 
     /**
      * Вычисляет время, которое преодолеет сигнал, прежде чем попадёт к приёмнику
