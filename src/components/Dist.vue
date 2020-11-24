@@ -3,35 +3,36 @@
     error={{totalError}}
     {{ result }}
 
-    <v-stage :config="configKonva">
+    <div class="canvas-wrapper" ref = "mainCanvas">
+      <v-stage   :config="configKonva">
 
-<!--      <v-layer>-->
-<!--        <v-circle v-for="(circle, index) in realPoints" :key="index" :config="circle">-->
-<!--        </v-circle>-->
-<!--      </v-layer>-->
+        <!--      <v-layer>-->
+        <!--        <v-circle v-for="(circle, index) in realPoints" :key="index" :config="circle">-->
+        <!--        </v-circle>-->
+        <!--      </v-layer>-->
 
 
-<!--      <v-layer>-->
-<!--        <v-circle v-for="(realPoint,pointIndex) in realPoints" :key="pointIndex" :config="realPoint">-->
-<!--        </v-circle>-->
-<!--      </v-layer>-->
-      <v-layer>
-        <v-circle v-for="(receiver,pointIndex) in circlesToShow" :key="pointIndex" :config="receiver">
-        </v-circle>
-      </v-layer>
+        <!--      <v-layer>-->
+        <!--        <v-circle v-for="(realPoint,pointIndex) in realPoints" :key="pointIndex" :config="realPoint">-->
+        <!--        </v-circle>-->
+        <!--      </v-layer>-->
+        <v-layer>
+          <v-circle v-for="(receiver,pointIndex) in circlesToShow" :key="pointIndex" :config="receiver">
+          </v-circle>
+        </v-layer>
 
-<!--      <v-layer>-->
-<!--        <v-circle v-for="(receiver,pointIndex) in foundPoints" :key="pointIndex" :config="receiver">-->
-<!--        </v-circle>-->
-<!--      </v-layer>-->
+        <!--      <v-layer>-->
+        <!--        <v-circle v-for="(receiver,pointIndex) in foundPoints" :key="pointIndex" :config="receiver">-->
+        <!--        </v-circle>-->
+        <!--      </v-layer>-->
 
-      <v-layer>
-        <v-circle v-for="(receiver,pointIndex) in rads" :key="pointIndex" :config="receiver">
-        </v-circle>
-      </v-layer>
+        <v-layer>
+          <v-circle v-for="(receiver,pointIndex) in rads" :key="pointIndex" :config="receiver">
+          </v-circle>
+        </v-layer>
 
-      <v-layer>
-        <v-line :config="{
+        <v-layer>
+          <v-line :config="{
         x: 0,
         y: 0,
         points: this.pathLinePoints,
@@ -44,8 +45,10 @@
         // fillLinearGradientEndPoint: { x: 50, y: 50 },
         // fillLinearGradientColorStops: [0, 'red', 1, 'yellow']
       }"/>
-      </v-layer>
-    </v-stage>
+        </v-layer>
+      </v-stage>
+    </div>
+
 
   </div>
 </template>
@@ -91,25 +94,31 @@ name: "Dist",
       linesToShowAfterDrawStarts: {},
       receivers: {
         1: {
-          x: 111+ Math.random() * 200,
-          y: 111+ Math.random() * 200,
-          radius: 20,
+          // x: 111+ Math.random() * 200,
+          // y: 111+ Math.random() * 200,
+          x: 0,
+          y: 0,
+          radius: 100,
           fill: "red",
           stroke: "black",
           strokeWidth: 14
         },
         2: {
-          x: 1211+ Math.random() * 200,
-          y: 555+ Math.random() * 200,
-          radius: 20,
+          // x: 1211+ Math.random() * 200,
+          // y: 555+ Math.random() * 200,
+          x: 1000,
+          y: 0,
+          radius: 100,
           fill: "green",
           stroke: "black",
           strokeWidth: 14
         },
         3: {
-          x: 777+ Math.random() * 200,
-          y: 1100+ Math.random() * 200,
-          radius: 20,
+          // x: 777+ Math.random() * 200,
+          // y: 1100+ Math.random() * 200,
+          x: 0,
+          y: 1000,
+          radius: 100,
           fill: "blue",
           stroke: "black",
           strokeWidth: 14
@@ -145,8 +154,11 @@ name: "Dist",
   created () {
     this.pathLinePoints = [this.startX, this.startY];
 
+    let mainCanvasInfo = this.$refs.mainCanvas.getBoundingClientRect();
+    /*s*/console.log('mainCanvasInfo=', mainCanvasInfo); //todo r
     for (let id = 1; id < 4; id++) {
-      this.addCircleToDraw(this.receivers[id].x, this.receivers[id].y, this.receivers[id].radius, 'receiver_' + id,
+      this.addCircleToDraw(this.receivers[id].x, this.receivers[id].y, this.receivers[id].radius, this.receivers[id].strokeWidth,
+          'receiver_' + id,
           {fill: this.receivers[id].fill}
       );
     }
@@ -171,24 +183,88 @@ name: "Dist",
       let scale = Math.min(screenToFieldWidth, screenToFieldHeight);
 
 
+      /*s*/console.log('this.rightTestPoint=', this.rightTestPoint); //todo r
+      /*s*/console.log('this.leftestPoint=', this.leftestPoint); //todo r
 
       let averageX = (this.rightTestPoint - this.leftestPoint) / 2;
       let halfWidth = window.innerWidth / 2;
+
+      /*s*/console.log('halfWidth=', halfWidth); //todo r
+/*s*/console.log('averageX=', averageX); //todo r
+
       let horShift = halfWidth - averageX;
+      horShift = this.leftestPoint * -1;
 
       let averageY = (this.lowestPoint - this.highestPoint) / 2;
       let halfHeight = window.innerHeight / 2;
 
+      /*s*/console.log('halfHeight=', halfHeight); //todo r
+      /*s*/console.log('averageY=', averageY); //todo r
       let verShift = halfHeight - averageY;
+      verShift = this.highestPoint * -1;
+
+      /*s*/console.log('horShift=', horShift); //todo r
+      /*s*/console.log('verShift=', verShift); //todo r
+      /*s*/console.log('scale=', scale); //todo r
 
       for (let circleIndex in this.circlesToShowAfterDrawStarts) {
+        console.log("\n\n");
+        /*s*/console.log('circleIndex=', circleIndex); //todo r
         let circleInfo = this.circlesToShowAfterDrawStarts[circleIndex];
-        this.circlesToShow[circleIndex] = {
-            x: (circleInfo.x + horShift) * scale,
-            y: (circleInfo.y + verShift) * scale,
-            fill: circleInfo.fill
+        let xToDraw = (circleInfo.x + horShift) * scale;
+        // let xToDraw = (circleInfo.x ) * scale;
+        let yToDraw = (circleInfo.y + verShift ) * scale;
+        // let yToDraw = (circleInfo.y  ) * scale;
+        let radiusToDraw = (circleInfo.radius ) * scale;
+
+        /*s*/console.log('circleInfo.x=', circleInfo.x); //todo r
+        /*s*/console.log('circleInfo.y=', circleInfo.y); //todo r
+
+
+        /*s*/console.log('xToDraw=', xToDraw); //todo r
+        /*s*/console.log('yToDraw=', yToDraw); //todo r
+        /*s*/console.log('radiusToDraw=', radiusToDraw); //todo r
+        this.circlesToShow[circleIndex + "_abcdef"] = {
+            x: xToDraw,
+            y: yToDraw,
+            radius: radiusToDraw ,
+          strokeWidth: 10,
+          stroke: "purple",
+            ...circleInfo.otherProps,
+          opacity: 0.5,
+            // fill: circleInfo.fill
         };
+
+
+
+        this.circlesToShow[ 'abc' + circleIndex] = {
+          x: (circleInfo.x ) ,
+          y: (circleInfo.y ) ,
+          radius: circleInfo.radius * scale,
+          strokeWidth: 10,
+          stroke: "black",
+
+          ...circleInfo.otherProps,
+          opacity: 0.5,
+          // fill: circleInfo.fill
+        };
+
       }
+      /*s*/console.log('this.circlesToShow=', this.circlesToShow); //todo r
+
+      // for (let circleIndex in this.circlesToShowAfterDrawStarts) {
+      //   let circleInfo = this.circlesToShowAfterDrawStarts[circleIndex];
+      //   this.circlesToShow[ 'abc' + circleIndex] = {
+      //     x: (circleInfo.x ) ,
+      //     y: (circleInfo.y ) ,
+      //     radius: circleInfo.r * scale * 2,
+      //     strokeWidth: 10,
+      //     stroke: "black",
+      //     opacity: 0.5,
+      //     ...circleInfo
+      //     // fill: circleInfo.fill
+      //   };
+      // }
 
       console.log('this.circlesToShow',this.circlesToShow); //todo r
 
@@ -197,28 +273,28 @@ name: "Dist",
       console.log('scale',scale); //todo r
 
     },
-    addPoint(x, y) {
-      if (x > this.rightTestPoint) {
-        this.rightTestPoint = x;
+    addPoint(x, y, size = 0) {
+      if (x + size > this.rightTestPoint) {
+        this.rightTestPoint = x + size;
       }
-      if (x < this.leftestPoint) {
-        this.leftestPoint = x;
+      if (x - size < this.leftestPoint) {
+        this.leftestPoint = x - size;
       }
-      if (y > this.lowestPoint) {
-        this.lowestPoint = y;
+      if (y + size > this.lowestPoint) {
+        this.lowestPoint = y + size;
       }
-      if (y < this.highestPoint) {
-        this.highestPoint = y;
+      if (y - size < this.highestPoint) {
+        this.highestPoint = y - size;
       }
     },
-    addCircleToDraw(x, y, r, key, otherProps) {
-      this.addPoint(x, y);
-      this.circlesToShowAfterDrawStarts[key] = {x, y, r, ...otherProps};
+    addCircleToDraw(x, y, radius, strokeWidth, key, otherProps) {
+      this.addPoint(x, y, radius + strokeWidth);
+      this.circlesToShowAfterDrawStarts[key] = {x, y, radius, otherProps};
       console.log('this.circlesToShowAfterDrawStarts',this.circlesToShowAfterDrawStarts); //todo r
     },
     addLinePartToDraw(x, y, key, otherProps) {
       this.addPoint(x, y);
-      this.linesToShowAfterDrawStarts[key] = {x, y, ...otherProps};
+      this.linesToShowAfterDrawStarts[key] = {x, y, otherProps};
       console.log('this.linesToShowAfterDrawStarts',this.linesToShowAfterDrawStarts); //todo r
     },
 
