@@ -1,20 +1,20 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import Home from '../views/Home.vue'
-import Dist from "@/components/Dist";
+import FileLoad from '../views/FileLoad.vue'
+import Testing from "@/components/Testing";
 
 Vue.use(VueRouter)
 
 const routes = [
   {
-    path: '/home',
+    path: '/',
     name: 'Home',
-    component: Home
+    component: FileLoad
   },
   {
-    path: '/',
-    name: 'Dist',
-    component: Dist
+    path: '/testing',
+    name: 'Testing',
+    component: Testing
   },
   {
     path: '/about',
