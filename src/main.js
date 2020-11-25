@@ -3,11 +3,11 @@ import App from './App.vue'
 import router from './router'
 import store from './store'
 
-// import Vue from 'vue';
 import VueKonva from 'vue-konva'
 
 Vue.use(VueKonva)
 Vue.config.productionTip = false
+Vue.component(FileReader.name, FileReader)
 
 new Vue({
   router,

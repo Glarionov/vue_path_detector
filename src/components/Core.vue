@@ -3,34 +3,79 @@
     <div class="message-div" v-if="message">
       Message: {{message}}
     </div>
-    <div class="canvas-wrapper" ref = "mainCanvas">
-      <v-stage   :config="configKonva">
+    <div class="main-container">
+      <div class="canvas-wrapper" ref = "mainCanvas">
+        <v-stage   :config="configKonva">
 
-        <v-layer>
-          <v-circle v-for="(circleData,pointIndex) in circlesToShow" :key="pointIndex" :config="circleData">
-          </v-circle>
-          <v-text v-for="(textData,pointIndex) in textsToShow" :key="pointIndex" :config="textData">
-          </v-text>
-        </v-layer>
-        <v-layer>
+          <v-layer>
+            <v-circle v-for="(circleData,pointIndex) in circlesToShow" :key="pointIndex" :config="circleData">
+            </v-circle>
+            <v-text v-for="(textData,pointIndex) in textsToShow" :key="pointIndex" :config="textData">
+            </v-text>
+          </v-layer>
+          <v-layer>
 
-          <v-line v-if:="linesToShow" v-for="(lineData, index) in linesToShow"
-                  :key="index"
-                  :config="lineData"
-          />
-        </v-layer>
-      </v-stage>
+            <v-line v-if:="linesToShow" v-for="(lineData, index) in linesToShow"
+                    :key="index"
+                    :config="lineData"
+            />
+          </v-layer>
+        </v-stage>
+      </div>
+      <div class="info-block">
+        <slot name="infoBlockText" ref="infoBlockText"></slot>
+
+        <div class="info-for-file">
+          <p v-for="(text, index) in ownText" :key="index">
+            {{text}}
+          </p>
+        </div>
+
+        <table v-if="!testing" class="guessed-points-info">
+
+          <tr>
+          <th colspan="3">Предполагаемые кординаты точки в моменты времени</th>
+          </tr>
+
+          <tr>
+            <th>
+              Время
+            </th>
+            <th>
+              X
+            </th>
+            <th>
+              Y
+            </th>
+          </tr>
+          <tr
+          v-for="(element, index) in foundValues" :key="index">
+            <td>
+              {{ element.t }}
+            </td>
+            <td>
+              {{element.x}}
+            </td>
+            <td>
+              {{element.y}}
+            </td>
+          </tr>
+        </table>
+      </div>
     </div>
-
-
   </div>
 </template>
 
 <script>
+
+let distance = require('euclidean-distance')
+let average = require('average');
+
 export default {
   name: "Display",
   data: function () {
     return {
+      ownText: [],
       circlesToShow: {},
       linesToShow: {},
       textsToShow: {},
@@ -42,7 +87,9 @@ export default {
       highestPoint: 0,
       lowestPoint: 0,
       signalSpeed: 1000,
-      // receivers: {},
+      foundValues: {},
+      message: '',
+      signalInfoNearCertainSecond: {},
       configKonva: {
         width:  100,
         height: 100,
@@ -60,26 +107,28 @@ export default {
 
     this.boxWidth = mainCanvasInfo.width;
     this.boxHeight = mainCanvasInfo.height;
-
-    // this.rightTestPoint = this.receivers[1].x;
-    // this.leftestPoint = this.receivers[1].x;
-    // this.highestPoint = this.receivers[1].y;
-    // this.lowestPoint = this.receivers[1].y;
-
   },
   props: {
-    // pos: Number,
-    // hexid: Number,
-    // eventData: Object,
-    // hexParamsByPosition: Object,
-    // circlesToShow: Object,
-    // linesToShow: Object,
-    // textsToShow: Object,
-    message: String,
+    messageProp: String,
     receivers: Object,
-    realPoints: Object
+    realPoints: Object,
+    testing: Boolean
   },
   methods: {
+    refresh() {
+      this.circlesToShow = {};
+      this.linesToShow = {};
+      this.textsToShow = {};
+      this.circlesToShowAfterDrawStarts = {};
+      this.linesToShowAfterDrawStarts ={};
+      this.pathLinePoints = {};
+      this.rightTestPoint = 0;
+          this.leftestPoint=  0;
+          this.highestPoint = 0;
+          this.lowestPoint = 0;
+      this.message =  '';
+          this.signalInfoNearCertainSecond =  {};
+    },
     setRightestPoint(value) {
       this.rightTestPoint = value;
     },
@@ -104,6 +153,28 @@ export default {
       }
     },
 
+    /**
+     * Объединение основных функций подсчёта координат и отрисовки элементов
+     *
+     * @param receivers   Координаты приёмников
+     * @param signals     Массив с данными о сигналах
+     * @param realPoints  Настоящие координаты точек  (для тестирования)
+     **/
+    countData(receivers, signals, realPoints = {}) {
+
+
+      if (!this.testing) {
+        for (let i in receivers) {
+          this.ownText.push('Координаты приёмника 1: ' + receivers[i].x + '(x) ' + receivers[i].y + '(y)');
+        }
+      }
+
+      this.setReceivers(receivers);
+      this.signalInfoNearCertainSecond = this.groupSignalInfoByNearestSeconds(signals);
+      this.countLineByGroupedSignals(this.signalInfoNearCertainSecond, realPoints);
+      this.countParamsAndDraw();
+    },
+
 
     /**
      * Создаёт массив из информации о сигналах,
@@ -113,7 +184,6 @@ export default {
      * @returns {{}}
      */
      groupSignalInfoByNearestSeconds(answersByTime) {
-       /*s*/console.log('answersByTime=', answersByTime); //todo r
 
   let signalInfoNearCertainSecond = {};
 
@@ -121,14 +191,11 @@ export default {
 
   for (let passedSeconds in answersByTime) {
     let poss = answersByTime[passedSeconds];
-    /*s*/console.log('poss=', poss); //todo r
     for (let ri = 1; ri <= amountOfReceivers; ri++) {
       if (!poss.hasOwnProperty(ri) || !poss[ri]) {
         continue;
       }
       let rdatas = poss[ri];
-      /*s*/console.log('rdatas=', rdatas); //todo r
-
 
       for (let rdata of rdatas) {
         if (!rdata) {
@@ -258,23 +325,24 @@ findThreeCircleIntersectionPoint(x0, y0, radius0, x1, y1, radius1, x2, y2, radiu
     guessedY = intersectionPoint2_y;
   }
 
+  if (this.testing) {
+    this.addCircleToDraw(x0, y0, radius0, 4,
+        'red_wave_' + x0 + '_' + y0 + '_' + radius0,
+        { strokeWidth: 1, stroke: 'red', opacity: 0.5}, '', false);
 
-  this.addCircleToDraw(x0, y0, radius0, 4,
-      'red_wave_' + x0 + '_' + y0 + '_' + radius0,
-      { strokeWidth: 1, stroke: 'red', opacity: 0.5}, '', false);
+    this.addCircleToDraw(x1, y1, radius1, 4,
+        'green_wave_' + x1 + '_' + y1 + '_' + radius1,
+        { strokeWidth: 1, stroke: 'green', opacity: 0.5}, '', false);
 
-  this.addCircleToDraw(x1, y1, radius1, 4,
-      'green_wave_' + x1 + '_' + y1 + '_' + radius1,
-      { strokeWidth: 1, stroke: 'green', opacity: 0.5}, '', false);
-
-  this.addCircleToDraw(x2, y2, radius2, 4,
-      'blue_wave_' + x2 + '_' + y2 + '_' + radius2,
-      { strokeWidth: 1, stroke: 'blue', opacity: 0.5}, '', false);
+    this.addCircleToDraw(x2, y2, radius2, 4,
+        'blue_wave_' + x2 + '_' + y2 + '_' + radius2,
+        { strokeWidth: 1, stroke: 'blue', opacity: 0.5}, '', false);
+  }
 
   return {x: guessedX, y: guessedY};
 },
 
-countLineByGroupedSignals(signalInfoNearCertainSecond) {
+countLineByGroupedSignals(signalInfoNearCertainSecond, realPoints = {}) {
 
   let errors = [];
 
@@ -286,14 +354,14 @@ countLineByGroupedSignals(signalInfoNearCertainSecond) {
 
     let usableSignalInfo = JSON.parse(JSON.stringify(knownTime));
 
-    /*s*/console.log('usableSignalInfo=', usableSignalInfo); //todo r
-
     /*
       Если для получилось так, что какой-то секунде не досталось своей информации о сигнале,
       из-за того, что она "разбежалась" по соседним секундам в процессе округления -
       записываем в массив этой секунды усреднённую информацию соседних секунд
     */
     for (let i =1 ; i <=3 ; i++) {
+
+
       if (!usableSignalInfo.hasOwnProperty(i)) {
         let tmo = passedSecond - 1;
         let tpo = parseInt(passedSecond) + 1;
@@ -320,6 +388,16 @@ countLineByGroupedSignals(signalInfoNearCertainSecond) {
       continue;
     }
 
+    if (this.testing) {
+
+      let add1 = Math.floor(usableSignalInfo[1].signal * 1000)/1000;
+      let add2 = Math.floor(usableSignalInfo[2].signal * 1000)/1000;
+      let add3 = Math.floor(usableSignalInfo[3].signal * 1000)/1000
+
+      this.ownText .push(add1+ ','  +
+          add2 + ',' +
+          add3);
+    }
 
     let x0 = this.receivers[1].x;
     let y0 = this.receivers[1].y;
@@ -329,10 +407,12 @@ countLineByGroupedSignals(signalInfoNearCertainSecond) {
     let y2 = this.receivers[3].y;
 
 
+    /*
+      Экстраполяция имеющихся данных на информацию о возможной величене сигнала в целую секунду
+    */
     for (let i =1 ; i <=3 ; i++) {
       let time = usableSignalInfo[i]['time'];
       let signal = usableSignalInfo[i]['signal'];
-
       if (time !== passedSecond) {
         if (time > parseInt(passedSecond)) {
           let tmo = parseInt(passedSecond) - 1;
@@ -349,23 +429,14 @@ countLineByGroupedSignals(signalInfoNearCertainSecond) {
 
           } else {
             let tmo = parseInt(passedSecond) + 1;
-            if (passedSecond == 0 ) {
-              /*s*/console.log('tmo=', tmo); //todo r
-            }
             if (signalInfoNearCertainSecond.hasOwnProperty(tmo) && signalInfoNearCertainSecond[tmo].hasOwnProperty(i)) {
               let knownTime2 = signalInfoNearCertainSecond[tmo][i];
-              /*s*/console.log('knownTime2=', knownTime2); //todo r
               let time2 = knownTime2['time'];
               let signal2 = knownTime2['signal'];
               let tdiff = time2 - time;
-              /*s*/console.log('tdiff=', tdiff); //todo r
               let sdiff = signal2 - signal;
-              /*s*/console.log('sdiff=', sdiff); //todo r
               let overTime = time - Math.trunc(time);
-              /*s*/console.log('overTime=', overTime); //todo r
               let minusValue = overTime * sdiff / (tdiff);
-              /*s*/console.log('minusValue=', minusValue); //todo r
-
               usableSignalInfo[i]['signal'] -= minusValue;
             } else {
               extrapolationFail = true;
@@ -413,24 +484,28 @@ countLineByGroupedSignals(signalInfoNearCertainSecond) {
         x2, y2, usableSignalInfo[3]['signal'] * this.signalSpeed
     );
 
-    /*s*/console.log('intersectionPoint=', intersectionPoint); //todo r
-
     if (intersectionPoint.hasOwnProperty('error')) {
       continue;
     }
 
-    if (this.realPoints && this.realPoints.hasOwnProperty(passedSecond)) {
-      let error = distance([intersectionPoint.x, intersectionPoint.y], [this.realPoints[passedSecond].x, this.realPoints[passedSecond].y]);
+    if (realPoints && realPoints.hasOwnProperty(passedSecond)) {
+      let error = distance([intersectionPoint.x, intersectionPoint.y], [realPoints[passedSecond].x, realPoints[passedSecond].y]);
       errors.push(error);
     }
 
-    /*s*/console.log('intersectionPoint.x=', intersectionPoint.x); //todo r
-    /*s*/console.log('intersectionPoint.y=', intersectionPoint.y); //todo r
 
-    this.addCircleToDraw( intersectionPoint.x, intersectionPoint.y, 50, 2,
-        'intersection_' + passedSecond,
-        {fill: 'green', stroke: 'black', opacity: 0.2}, passedSecond );
+    if (this.testing) {
+      this.addCircleToDraw( intersectionPoint.x, intersectionPoint.y, 50, 2,
+          'intersection_' + passedSecond,
+          {fill: 'green', stroke: 'black', opacity: 0.2}, passedSecond );
+    } else {
+      this.foundValues[passedSecond] = {t: passedSecond, x: Math.floor(intersectionPoint.x * 10) /10, y: Math.floor(intersectionPoint.y * 10) /10};
+    }
 
+    /*
+      Если ещё не определён массив с точками линии - добавляем его
+      И в любом случае добавляем к нему текущую точку
+     */
     if (!this.linesToShowAfterDrawStarts.hasOwnProperty('result')) {
       this.addLineToDraw(intersectionPoint.x, intersectionPoint.y, 10, 'result', {stroke: 'purple'});
     }
@@ -440,6 +515,11 @@ countLineByGroupedSignals(signalInfoNearCertainSecond) {
         intersectionPoint.y,
         'result',
     );
+  }
+
+  if (this.testing && errors.length) {
+    let errorAverage = average(errors);
+    this.message = 'Average error:' + errorAverage;
   }
 
   return this.linesToShowAfterDrawStarts;
@@ -532,8 +612,6 @@ countLineByGroupedSignals(signalInfoNearCertainSecond) {
 
       this.writeCoordinates(distanceBetweenLeftestAndRightestPoint, leftestPoint, horShift, boxWidth, scale, 'x');
       this.writeCoordinates(distanceBetweenTopAndBottomPoint, lowestPoint, verShift, boxHeight, scale, 'y');
-
-      /*s*/console.log('this.circlesToShowAfterDrawStarts=', this.circlesToShowAfterDrawStarts); //todo r
 
       for (let circleIndex in this.circlesToShowAfterDrawStarts) {
         let circleInfo = this.circlesToShowAfterDrawStarts[circleIndex];
@@ -647,14 +725,39 @@ countLineByGroupedSignals(signalInfoNearCertainSecond) {
 
 <style scoped>
 
-.canvas-wrapper {
-  width: 90%;
+.main-container {
+  display: flex;
+  width: 98%;
   height: calc(100vh - 200px);
-  margin: auto;
-  border: 2px solid orange;
-  background: #f3f3f3;
-  position: absolute;
-  left: 5%;
+  margin: 20px auto;
+}
+
+.canvas-wrapper {
+  width: 80%;
+  height: 100%;
+  border: 2px solid #5b5443;
+  background: #f3e3cb;
   overflow: hidden;
 }
+
+.info-block {
+  background: #433d38;
+  width: 21%;
+  margin-left: 2%;
+  padding: 10px 3px;
+  color: #b7aea2;
+  font-size: 14px;
+  overflow: auto;
+  max-width: 300px;
+  min-height: 250px;
+  border: 2px solid #5b5443;
+}
+
+.guessed-points-info {
+  padding: 5px;
+  width: 96%;
+  margin: 20px auto;
+  background: #2b2a28;
+}
+
 </style>

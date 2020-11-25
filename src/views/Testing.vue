@@ -1,58 +1,44 @@
 <template>
   <div>
-<!--    <div class="message-div" v-if="message">-->
-<!--      Message: {{message}}-->
-<!--    </div>-->
-<!--    <div class="canvas-wrapper" ref = "mainCanvas">-->
-<!--      <v-stage   :config="configKonva">-->
-
-<!--        <v-layer>-->
-<!--          <v-circle v-for="(circleData,pointIndex) in circlesToShow" :key="pointIndex" :config="circleData">-->
-<!--          </v-circle>-->
-<!--          <v-text v-for="(textData,pointIndex) in textsToShow" :key="pointIndex" :config="textData">-->
-<!--          </v-text>-->
-<!--        </v-layer>-->
-<!--        <v-layer>-->
-
-<!--          <v-line v-if:="linesToShow" v-for="(lineData, index) in linesToShow"-->
-<!--                  :key="index"-->
-<!--                  :config="lineData"-->
-<!--          />-->
-<!--        </v-layer>-->
-<!--      </v-stage>-->
-<!--    </div>-->
-
-
-    <Display
+    <Core
         ref="mainCanvasComponent"
         :circlesToShow="circlesToShow"
         :linesToShow="linesToShow"
         :textsToShow="textsToShow"
         :message="message"
         :receivers="receivers"
-    />
+        :realPoints="realPoints"
+        :testing="true"
+    >
+
+      <template v-slot:infoBlockText>
+        <div class="info-for-file">
+          <p v-for="(text, index) in infoForFile" :key="index">
+            {{ text }}
+          </p>
+        </div>
+      </template>
+
+    </Core>
 
   </div>
 </template>
-
 <script>
 
-import Display from "@/components/Display";
-// import CoordinateCounter from "@/assets/js/CoordinateCounter";
-var distance = require('euclidean-distance')
-var average = require('average');
+import Core from "@/components/Core";
 
 var solveQuadraticEquation = require('solve-quadratic-equation');
 var centroid = require('triangle-centroid')
 
 export default {
   components: {
-    Display
+    Core
     // Test
   },
-name: "Dist",
+  name: "Dist",
   data: function () {
     return {
+      infoForFile: ['Данные ниже можно использовать для загрузки файла в основном режиме:'],
       mainCanvas: "abc",
       leftestPoint: 0,
       message: '',
@@ -64,10 +50,11 @@ name: "Dist",
       amountOfSeconds: 40,
       // Моменты времени, в которые передатчик изменит своё направление
       turnMoments: [10, 20, 30],
-      startX: -1000 + Math.random() * 2000,
-      startY: -1000 + Math.random() * 2000,
-      horizontalSpeed: (30 + 30 * Math.random()) * (Math.round(Math.random()) * 2 - 1),
-      verticalSpeed: (30 + 30 * Math.random()) * (Math.round(Math.random()) * 2 - 1),
+      // turnMoments: [],
+      startX: Math.floor(-1000 + Math.random() * 2000),
+      startY: Math.floor(-1000 + Math.random() * 2000),
+      horizontalSpeed: Math.floor((30 + 30 * Math.random()) * (Math.round(Math.random()) * 2 - 1)),
+      verticalSpeed: Math.floor((30 + 30 * Math.random()) * (Math.round(Math.random()) * 2 - 1)),
 
       turnTime: 5,
       /**
@@ -92,24 +79,24 @@ name: "Dist",
       linesToShowAfterDrawStarts: {},
       receivers: {
         1: {
-          x: -333+ Math.random() * 400,
-          y: -333+ Math.random() * 300,
+          x: Math.floor(-333 + Math.random() * 400),
+          y: Math.floor(-333 + Math.random() * 300),
           radius: 40,
           fill: "red",
           stroke: "black",
           strokeWidth: 20
         },
         2: {
-          x: 1211+ Math.random() * 500,
-          y: -1000 + Math.random() * 500,
+          x: Math.floor(1211 + Math.random() * 500),
+          y: Math.floor(-1000 + Math.random() * 500),
           radius: 40,
           fill: "green",
           stroke: "black",
           strokeWidth: 20
         },
         3: {
-          x:  -333+ Math.random() * 400,
-          y: 1000 + Math.random() * 2000,
+          x: Math.floor(-333 + Math.random() * 400),
+          y: Math.floor(1000 + Math.random() * 2000),
           radius: 40,
           fill: "blue",
           stroke: "black",
@@ -122,7 +109,7 @@ name: "Dist",
         x: 0, y: 0, hs: 1000, vs: 0
       },
       configKonva: {
-        width:  100,
+        width: 100,
         height: 100,
       },
       result: '',
@@ -135,51 +122,50 @@ name: "Dist",
     }
   },
   mounted() {
-
-    this.pathLinePoints = [this.startX, this.startY];
-
-    // const {mainCanvas2} = this.$refs;
-    // let mainCanvasInfo = this.$refs.mainCanvas.getBoundingClientRect();
-    // this.mainLeftOffset = mainCanvasInfo.x;
-    // this.mainTopOffset = mainCanvasInfo.y;
-    //
-    // this.configKonva.width = mainCanvasInfo.width;
-    // this.configKonva.height = mainCanvasInfo.height;
-    //
-    // this.boxWidth = mainCanvasInfo.width;
-    // this.boxHeight = mainCanvasInfo.height;
-
-    // this.rightTestPoint = this.receivers[1].x;
-    // this.leftestPoint = this.receivers[1].x;
-    // this.highestPoint = this.receivers[1].y;
-    // this.lowestPoint = this.receivers[1].y;
-    //
-    // for (let id = 1; id < 4; id++) {
-    //   this.$refs.mainCanvasComponent.addCircleToDraw(this.receivers[id].x, this.receivers[id].y, this.receivers[id].radius, this.receivers[id].strokeWidth,
-    //       'receiver_' + id,
-    //       {fill: this.receivers[id].fill, stroke: this.receivers[id].stroke},
-    //       'R.  ' + id
-    //   );
-    // }
-
-
-    this.$refs.mainCanvasComponent.setRightestPoint(this.receivers[1].x);
-    this.$refs.mainCanvasComponent.setLeftestPoint(this.receivers[1].x);
-    this.$refs.mainCanvasComponent.setHighestPoint(this.receivers[1].y);
-    this.$refs.mainCanvasComponent.setLowestPoint(this.receivers[1].y);
-
-    this.countT1();
-
-
-
-
+    this.start();
   },
-
-  created () {
-
-  },
-
   methods: {
+
+    start() {
+
+      this.realPoints = {};
+
+      this.infoForFile = ['Данные ниже можно использовать для загрузки файла в основном режиме:'];
+      this.generateReceivers();
+
+      let info = '';
+      for (let id = 1; id < 4; id++) {
+        info += this.receivers[id].x + ',' + this.receivers[id].y + ',';
+      }
+
+      this.infoForFile.push(info);
+
+      this.$refs.mainCanvasComponent.refresh();
+      this.$refs.mainCanvasComponent.setRightestPoint(this.receivers[1].x);
+      this.$refs.mainCanvasComponent.setLeftestPoint(this.receivers[1].x);
+      this.$refs.mainCanvasComponent.setHighestPoint(this.receivers[1].y);
+      this.$refs.mainCanvasComponent.setLowestPoint(this.receivers[1].y);
+
+      this.countPathBySpeedAndCheckIt();
+    },
+
+    generateReceivers() {
+
+      let colors = {1: 'red', 2: 'green', 3: 'blue'};
+
+      for (let id = 1; id < 4; id++) {
+        this.receivers[id] = {
+          x: Math.floor(-2000 + Math.random() * 4000),
+          y: Math.floor(-2000 + Math.random() * 4000),
+          radius: 40,
+          fill: colors[id],
+          stroke: "black",
+          strokeWidth: 20
+        }
+      }
+    },
+
+
     /**
      * Вычисляет время, которое преодолеет сигнал, прежде чем попадёт к приёмнику
      *
@@ -201,9 +187,9 @@ name: "Dist",
         чтобы суммарное время движения приёмника и сигнала составляло totalTime, необходимо составить квадратное уравнение
         в переменные a, b и с записываются соответствующие коэфиценты
        */
-      let a = (h*h + v*v - ss*ss);
-      let b = (2 * x0 * h - 2 * h * receiverX + 2 * y0 * v - 2 * v * receiverY + 2 * totalTime * ss*ss);
-      let c = -1 * (totalTime*totalTime * ss*ss - x0*x0 - receiverX*receiverX + 2 * x0 * receiverX - y0*y0 - receiverY*receiverY + 2 * y0 * receiverY);
+      let a = (h * h + v * v - ss * ss);
+      let b = (2 * x0 * h - 2 * h * receiverX + 2 * y0 * v - 2 * v * receiverY + 2 * totalTime * ss * ss);
+      let c = -1 * (totalTime * totalTime * ss * ss - x0 * x0 - receiverX * receiverX + 2 * x0 * receiverX - y0 * y0 - receiverY * receiverY + 2 * y0 * receiverY);
 
       let roots = solveQuadraticEquation(a, b, c);
 
@@ -213,7 +199,7 @@ name: "Dist",
         Заведомо иключаются ситуации, кога приёмник двигался отрицательное время, или время большее, чем totalTime
        */
       for (let transmitterTravelTime of roots) {
-        if (transmitterTravelTime < totalTime && totalTime - transmitterTravelTime > 0) {
+        if (transmitterTravelTime > 0 && transmitterTravelTime < totalTime && totalTime - transmitterTravelTime > 0) {
           let signalTime = totalTime - transmitterTravelTime;
 
           /*
@@ -253,7 +239,7 @@ name: "Dist",
       this.verticalSpeed = newVerticalSpeed;
     },
 
-    countT1() {
+    countPathBySpeedAndCheckIt() {
 
       let ansersByTime = {};
 
@@ -265,23 +251,21 @@ name: "Dist",
         y: this.startY,
       };
 
-      this.$refs.mainCanvasComponent.addCircleToDraw(this.startX, this.startY, 20, 2,
+      this.$refs.mainCanvasComponent.addCircleToDraw(this.startX, this.startY, 44, 2,
           'real_point_0',
-          {fill: 'red', strokeWidth: 2, stroke: 'black', opacity: 0.5}, ''+0);
+          {fill: 'red', strokeWidth: 2, stroke: 'black', opacity: 0.8},);
 
       let ansersByTimeAndTurnPoint = {};
 
-      let turnMoments = [8, 16, 24, 32];
-      // let turnMoments = [];
-      for (let turnPointKey = 0; turnPointKey <= turnMoments.length; turnPointKey++) {
+      for (let turnPointKey = 0; turnPointKey <= this.turnMoments.length; turnPointKey++) {
         ansersByTimeAndTurnPoint[turnPointKey] = {};
-        for (let passedSeconds = 1; passedSeconds < 40; passedSeconds ++) {
+        for (let passedSeconds = 1; passedSeconds < 40; passedSeconds++) {
 
 
           let timeToCalc = passedSeconds - turnPointMinus;
 
 
-          if (!turnMoments.hasOwnProperty(turnPointKey) || passedSeconds < turnMoments[turnPointKey]) {
+          if (!this.turnMoments.hasOwnProperty(turnPointKey) || passedSeconds < this.turnMoments[turnPointKey]) {
 
             if (!this.realPoints.hasOwnProperty(passedSeconds)) {
               let realPointX = this.startX + timeToCalc * this.horizontalSpeed;
@@ -293,32 +277,12 @@ name: "Dist",
                 y: realPointY,
               };
 
-              let opacity = 0.5;
-
-              this.$refs.mainCanvasComponent.addCircleToDraw(realPointX, realPointY, 20, 2,
+              this.$refs.mainCanvasComponent.addCircleToDraw(realPointX, realPointY, 44, 2,
                   'real_point_' + passedSeconds,
-                  {fill: 'red', strokeWidth: 2, stroke: 'black', opacity}, '' + passedSeconds);
+                  {fill: 'red', strokeWidth: 2, stroke: 'black', opacity: 0.8}, 'R' + passedSeconds);
             }
 
-
           }
-
-
-          // if (passedSeconds != 6) {
-          //   continue;
-          // }
-
-
-          // let answers = this.countT2ByRes()
-          ansersByTime[passedSeconds] =
-              {
-                1:
-                    this.countSignalTimeForCertainSecond(this.receivers[1].x, this.receivers[1].y, timeToCalc),
-                2:
-                    this.countSignalTimeForCertainSecond(this.receivers[2].x, this.receivers[2].y, timeToCalc),
-                3:
-                    this.countSignalTimeForCertainSecond(this.receivers[3].x, this.receivers[3].y, timeToCalc),
-              };
 
           ansersByTimeAndTurnPoint[turnPointKey][passedSeconds] =
               {
@@ -339,42 +303,17 @@ name: "Dist",
       for (let turnPointKey in ansersByTimeAndTurnPoint) {
         let answersByThisTurnPoint = ansersByTimeAndTurnPoint[turnPointKey];
         for (let passedSeconds in answersByThisTurnPoint) {
-          if ((!turnMoments.hasOwnProperty(turnPointKey) || passedSeconds <= turnMoments[turnPointKey]) && !synnteticAnsersByTime.hasOwnProperty(passedSeconds)) {
+          if ((!this.turnMoments.hasOwnProperty(turnPointKey) || passedSeconds <= this.turnMoments[turnPointKey]) && !synnteticAnsersByTime.hasOwnProperty(passedSeconds)) {
             synnteticAnsersByTime[passedSeconds] = answersByThisTurnPoint[passedSeconds];
           }
         }
       }
 
+      this.$refs.mainCanvasComponent.countData(this.receivers, synnteticAnsersByTime, this.realPoints);
+    },
 
-      // CoordinateCounter.setReceivers();
-      // ansersByTime = ansersByTimeAndTurnPoint[0];
-
-      ansersByTime = synnteticAnsersByTime;
-
-      let errors = [];
-
-      // let signalInfoNearCertainSecond = CoordinateCounter.groupSignalInfoByNearestSeconds(ansersByTime);
-
-      /*s*/console.log('ansersByTime=', ansersByTime); //todo r
-
-      this.$refs.mainCanvasComponent.setReceivers(this.receivers);
-      let signalInfoNearCertainSecond = this.$refs.mainCanvasComponent.groupSignalInfoByNearestSeconds(ansersByTime);
-
-      let shapeData = this.$refs.mainCanvasComponent.countLineByGroupedSignals(signalInfoNearCertainSecond);
-      this.$refs.mainCanvasComponent.countParamsAndDraw();
-      // let shapeData = CoordinateCounter.countLineByGroupedSignals(signalInfoNearCertainSecond);
-
-      /*s*/console.log('shapeData=', shapeData); //todo r
-      //
-      // if (errors.length) {
-      //   this.message = 'Average Error: ' + average(errors);
-      // } else {
-      //   this.message = 'No errors have been found';
-      // }
-
-      // this.$refs.mainCanvasComponent.groupSignalInfoByNearestSeconds(ansersByTime);
-
-
+    reload() {
+      this.start();
     }
   }
 }
@@ -396,7 +335,6 @@ canvas {
   left: 5%;
   overflow: hidden;
 }
-
 
 
 </style>
