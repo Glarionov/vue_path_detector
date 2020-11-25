@@ -224,7 +224,6 @@ export default {
         }
       }
 
-
       return answers;
     },
 
@@ -240,9 +239,6 @@ export default {
     },
 
     countPathBySpeedAndCheckIt() {
-
-      let ansersByTime = {};
-
 
       let turnPointMinus = 0;
 
@@ -310,31 +306,11 @@ export default {
       }
 
       this.$refs.mainCanvasComponent.countData(this.receivers, synnteticAnsersByTime, this.realPoints);
-    },
-
-    reload() {
-      this.start();
     }
   }
 }
 </script>
 
 <style scoped>
-
-canvas {
-  background: pink;
-}
-
-.canvas-wrapper {
-  width: 90%;
-  height: calc(100vh - 200px);
-  margin: auto;
-  border: 2px solid orange;
-  background: #f3f3f3;
-  position: absolute;
-  left: 5%;
-  overflow: hidden;
-}
-
 
 </style>

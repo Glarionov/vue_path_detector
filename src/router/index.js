@@ -23,7 +23,7 @@ const routes = [
     name: 'About',
     meta: {title: 'Что это вообще такое'},
     component: function () {
-      return import(/* webpackChunkName: "about" */ '../views/About.vue')
+      return import('../views/About.vue')
     }
   }
 ]
